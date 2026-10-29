@@ -666,18 +666,36 @@ function drawPlayer(){
   var w = p.w / Math.sqrt(sq), h = p.h * sq;
   var x = p.x + (p.w - w)/2, y = p.y + (p.h - h);
   ctx.save();
-  ctx.fillStyle = '#ffd32a'; rr(x, y, w, h, 9); ctx.fill();
-  ctx.strokeStyle = '#b3541e'; ctx.lineWidth = 2; rr(x, y, w, h, 9); ctx.stroke();
-  var ex = p.face * 4, flip = (L && L.gdir === -1);
-  var ey1 = y + h*0.34, ey2 = y + h*0.34;
+  var flip = (L && L.gdir === -1);
+  /* tiny stub feet (squash base) */
+  var fy = flip ? y + 1 : y + h - 1;
+  ctx.fillStyle = '#0c0c13';
+  ctx.beginPath();
+  ctx.ellipse(x + w*0.3, fy, 5.2, 3, 0, 0, 7);
+  ctx.ellipse(x + w*0.7, fy, 5.2, 3, 0, 0, 7);
+  ctx.fill();
+  /* black rounded-square body */
+  ctx.fillStyle = '#14141d'; rr(x, y, w, h, 8); ctx.fill();
+  ctx.strokeStyle = 'rgba(215,215,250,.5)'; ctx.lineWidth = 1.6; rr(x, y, w, h, 8); ctx.stroke();
+  /* two big white eyes; pupils look toward the movement direction */
+  var shift = p.face * 1.6;
+  var e1x = x + w*0.35 + shift, e2x = x + w*0.65 + shift;
+  var cy = y + h*0.42, erx = w*0.165, ery = h*0.235;
+  var bt = timeNow % 3.7;                 /* blink ~0.11s every 3.7s */
+  var blink = bt < 0.11 ? 0.1 : 1;
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(x + w*0.36 + ex, ey1, 5.4, 0, 7); ctx.arc(x + w*0.66 + ex, ey2, 5.4, 0, 7); ctx.fill();
-  ctx.fillStyle = '#231303';
-  ctx.beginPath(); ctx.arc(x + w*0.36 + ex*1.5, ey1 + (flip ? -1.5 : 1), 2.6, 0, 7); ctx.arc(x + w*0.66 + ex*1.5, ey2 + (flip ? -1.5 : 1), 2.6, 0, 7); ctx.fill();
-  ctx.strokeStyle = '#231303'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(x + w*0.51 + ex, y + h*0.58, 4.6, flip ? Math.PI*1.12 : Math.PI*0.15, flip ? Math.PI*1.88 : Math.PI*0.85); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,110,140,.55)';
-  ctx.beginPath(); ctx.arc(x + w*0.2, y + h*0.55, 3.6, 0, 7); ctx.arc(x + w*0.82, y + h*0.55, 3.6, 0, 7); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(e1x, cy, erx, ery * blink, 0, 0, 7);
+  ctx.ellipse(e2x, cy, erx, ery * blink, 0, 0, 7);
+  ctx.fill();
+  if (blink > 0.3){
+    var px = p.face * 2.3, py = flip ? -1.6 : 1.1;
+    ctx.fillStyle = '#0a0a0f';
+    ctx.beginPath();
+    ctx.arc(e1x + px, cy + py, 2.9, 0, 7);
+    ctx.arc(e2x + px, cy + py, 2.9, 0, 7);
+    ctx.fill();
+  }
   ctx.restore();
 }
 function draw(){
@@ -765,7 +783,7 @@ function draw(){
     /* player */
     if (state !== 'dead') drawPlayer();
     else { /* ghost poof on death */
-      ctx.fillStyle = 'rgba(255,211,42,.5)';
+      ctx.fillStyle = 'rgba(205,205,225,.5)';
       ctx.beginPath(); ctx.arc(player.x + 15, player.y + 17, 20 + stateT*26, 0, 7); ctx.fill();
     }
     /* level tag */
