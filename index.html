@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#14142b">
-<title>LEVEL PAGAL — Darwaza Bhaag Gaya!</title>
+<title>LEVEL DEVIL PAGLU — Darwaza Bhaag Gaya!</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body { background:#0d0d1a; min-height:100%; }
@@ -61,7 +61,7 @@
 </style>
 </head>
 <body>
-  <h1 class="logo">LEVEL PAGAL</h1>
+  <h1 class="logo">LEVEL DEVIL PAGLU</h1>
   <p class="sub">Darwaza Bhaag Gaya! — har level tum se mazak karega. Sambhal ke.</p>
   <div id="wrap"><canvas id="game" width="960" height="540"></canvas></div>
   <div id="hud">
@@ -85,7 +85,7 @@
 <script>
 'use strict';
 /* ============================================================
-   LEVEL PAGAL — Darwaza Bhaag Gaya!
+   LEVEL DEVIL PAGLU — Darwaza Bhaag Gaya!
    An original troll-platformer. All code & art original.
    ============================================================ */
 var W = 960, H = 540;
@@ -125,6 +125,44 @@ function sfx(name){
   else if (name === 'dodge') beep(700, 1100, 0.1, 'sine', 0.04);
 }
 
+/* -------- Background music: tiny WebAudio chiptune loop (no files) --------
+   32 eighth-note steps at ~138 BPM: cheerful C-major melody (square wave,
+   kept quiet) + bouncy triangle bass. Scheduled with a small lookahead so
+   it loops cleanly across screens and levels. Starts on first interaction. */
+var MUS = { playing:false, step:0, nextT:0, timer:null };
+var MUS_STEP = 60 / 138 / 2;
+var MUS_MEL = [72,76,79,76, 81,79,76,72,  74,76,77,76, 74,72,74,76,
+               72,76,79,76, 81,79,76,72,  74,76,74,72, 74,0,72,0];
+var MUS_BAS = [48,55,48,55, 53,48,53,55, 48,55,48,55, 53,55,48,55];
+function musNote(midi, t, dur, type, vol){
+  if (!midi) return;
+  try {
+    var o = AC.createOscillator(), g = AC.createGain();
+    o.type = type;
+    o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  } catch(e){}
+}
+function musTick(){
+  if (!MUS.playing || !AC) return;
+  while (MUS.nextT < AC.currentTime + 0.3){
+    if (soundOn){
+      var s = MUS.step % 32;
+      musNote(MUS_MEL[s], MUS.nextT, MUS_STEP * 0.92, 'square', 0.024);
+      if (s % 2 === 0) musNote(MUS_BAS[s / 2], MUS.nextT, MUS_STEP * 1.8, 'triangle', 0.045);
+    }
+    MUS.nextT += MUS_STEP; MUS.step++;
+  }
+}
+function musicStart(){
+  if (!AC || MUS.playing) return;
+  MUS.playing = true; MUS.step = 0; MUS.nextT = AC.currentTime + 0.06;
+  MUS.timer = setInterval(musTick, 90);
+}
+
 /* ---------------- Input ---------------- */
 var input = { left:false, right:false, jump:false, jumpHit:false };
 var KEYMAP = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right',
@@ -155,7 +193,7 @@ document.getElementById('btnRestart').addEventListener('click', function(){
   audioInit(); if (state === 'play' || state === 'dead') startLevel(levelIdx, true);
 });
 document.getElementById('btnSound').addEventListener('click', function(){
-  soundOn = !soundOn; this.textContent = 'Awaz: ' + (soundOn ? 'ON' : 'OFF'); if (soundOn) { audioInit(); sfx('key'); }
+  soundOn = !soundOn; this.textContent = 'Awaz: ' + (soundOn ? 'ON' : 'OFF'); if (soundOn) { audioInit(); musicStart(); sfx('key'); }
 });
 
 /* ---------------- Helpers ---------------- */
@@ -297,6 +335,7 @@ function restartGame(){ deaths = 0; syncHud(); startLevel(0, true); }
 function syncHud(){ document.getElementById('hudDeaths').textContent = deaths; }
 function showBanner(txt, dur){ banner = txt; bannerT = dur || 1.6; }
 function anyPress(){
+  musicStart();
   if (state === 'title') startLevel(0, true);
   else if (state === 'win') restartGame();
 }
@@ -597,6 +636,26 @@ function drawSpikes(x, baseY, w, hgt, down){
     ctx.fillStyle = '#cfd6e4';
   }
 }
+/* Soft drifting background clouds (decorative only — no collision) */
+var CLOUDS = [];
+for (var ci = 0; ci < 7; ci++)
+  CLOUDS.push({ bx:(ci * 173 + 60) % W, y:26 + (ci * 67) % 300, s:0.6 + (ci % 4) * 0.28, v:6 + (ci % 3) * 5, a:0.07 + (ci % 3) * 0.03 });
+function drawClouds(){
+  for (var i = 0; i < CLOUDS.length; i++){
+    var c = CLOUDS[i];
+    var cx = ((c.bx + timeNow * c.v) % (W + 340)) - 170;
+    ctx.save(); ctx.translate(cx, c.y); ctx.scale(c.s, c.s);
+    ctx.fillStyle = 'rgba(235,235,255,' + c.a + ')';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 46, 17, 0, 0, 7);
+    ctx.ellipse(-30, 5, 30, 13, 0, 0, 7);
+    ctx.ellipse(30, 5, 32, 14, 0, 0, 7);
+    ctx.ellipse(-8, -12, 28, 15, 0, 0, 7);
+    ctx.ellipse(16, -9, 24, 13, 0, 0, 7);
+    ctx.fill();
+    ctx.restore();
+  }
+}
 function drawPlatform(p){
   ctx.save();
   ctx.globalAlpha = (p.type === 'fade' || p.type === 'step') ? Math.max(0, p.alpha) : 1;
@@ -662,38 +721,60 @@ function drawSaw(s){
 }
 function drawPlayer(){
   var p = player; if (!p) return;
-  var sq = p.squash > 0 ? 0.78 : 1;
+  var sq = p.squash > 0 ? 0.9 : 1;                  /* squash kept subtle on the long body */
   var w = p.w / Math.sqrt(sq), h = p.h * sq;
   var x = p.x + (p.w - w)/2, y = p.y + (p.h - h);
   ctx.save();
   var flip = (L && L.gdir === -1);
-  /* tiny stub feet (squash base) */
-  var fy = flip ? y + 1 : y + h - 1;
+  /* THE GAG: the drawn body is a ~10x-long noodle pillar.
+     The collision hitbox is still exactly p.w x p.h — visual only. */
+  var LH = h * 10;
+  var feetY = flip ? y : y + h;                     /* feet end of the noodle */
+  var cxm = x + w/2;
+  var moving = Math.abs(p.vx || 0) > 12;
+  var swayAmp = moving ? 3 : 1.1;                   /* wobble grows toward the head */
+  var swayPh = timeNow * (moving ? 7 : 2.1);
+  function offAt(t){ return Math.sin(swayPh + t * 2.4) * swayAmp * t; }   /* 0 at feet, max at head */
+  function yAt(t){ return flip ? feetY + t * LH : feetY - t * LH; }
+  /* tiny stub feet at the feet end */
+  var fy = flip ? feetY + 1 : feetY - 1;
   ctx.fillStyle = '#0c0c13';
   ctx.beginPath();
   ctx.ellipse(x + w*0.3, fy, 5.2, 3, 0, 0, 7);
   ctx.ellipse(x + w*0.7, fy, 5.2, 3, 0, 0, 7);
   ctx.fill();
-  /* black rounded-square body */
-  ctx.fillStyle = '#14141d'; rr(x, y, w, h, 8); ctx.fill();
-  ctx.strokeStyle = 'rgba(215,215,250,.5)'; ctx.lineWidth = 1.6; rr(x, y, w, h, 8); ctx.stroke();
-  /* two big white eyes; pupils look toward the movement direction */
+  /* long wavy black pillar body: one path up the left side, back down the right */
+  var SEG = 16, i2, t;
+  ctx.beginPath();
+  for (i2 = 0; i2 <= SEG; i2++){ t = i2 / SEG;
+    var lx = cxm - w/2 + offAt(t), ly = yAt(t);
+    if (i2 === 0) ctx.moveTo(lx, ly); else ctx.lineTo(lx, ly);
+  }
+  for (i2 = SEG; i2 >= 0; i2--){ t = i2 / SEG;
+    ctx.lineTo(cxm + w/2 + offAt(t), yAt(t));
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#14141d'; ctx.fill();
+  ctx.strokeStyle = 'rgba(215,215,250,.5)'; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.stroke();
+  /* two big white eyes up near the HEAD (the far end from the feet) */
+  var ht = 0.92;
+  var hcx = cxm + offAt(ht), hcy = yAt(ht);
   var shift = p.face * 1.6;
-  var e1x = x + w*0.35 + shift, e2x = x + w*0.65 + shift;
-  var cy = y + h*0.42, erx = w*0.165, ery = h*0.235;
+  var e1x = hcx - w*0.15 + shift, e2x = hcx + w*0.15 + shift;
+  var erx = w*0.165, ery = 8;
   var bt = timeNow % 3.7;                 /* blink ~0.11s every 3.7s */
   var blink = bt < 0.11 ? 0.1 : 1;
   ctx.fillStyle = '#fff';
   ctx.beginPath();
-  ctx.ellipse(e1x, cy, erx, ery * blink, 0, 0, 7);
-  ctx.ellipse(e2x, cy, erx, ery * blink, 0, 0, 7);
+  ctx.ellipse(e1x, hcy, erx, ery * blink, 0, 0, 7);
+  ctx.ellipse(e2x, hcy, erx, ery * blink, 0, 0, 7);
   ctx.fill();
   if (blink > 0.3){
     var px = p.face * 2.3, py = flip ? -1.6 : 1.1;
     ctx.fillStyle = '#0a0a0f';
     ctx.beginPath();
-    ctx.arc(e1x + px, cy + py, 2.9, 0, 7);
-    ctx.arc(e2x + px, cy + py, 2.9, 0, 7);
+    ctx.arc(e1x + px, hcy + py, 2.9, 0, 7);
+    ctx.arc(e2x + px, hcy + py, 2.9, 0, 7);
     ctx.fill();
   }
   ctx.restore();
@@ -706,23 +787,14 @@ function draw(){
   ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = 'rgba(255,255,255,.05)';
   for (var gx = 24; gx < W; gx += 48) for (var gy = 24; gy < H; gy += 48) ctx.fillRect(gx, gy, 3, 3);
+  drawClouds();
 
   if (shake > 0) ctx.translate((Math.random()*2 - 1) * shake, (Math.random()*2 - 1) * shake);
 
   if (state === 'title'){
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffd32a'; ctx.font = '900 74px Arial';
-    ctx.fillText('LEVEL PAGAL', W/2, 190);
-    ctx.fillStyle = '#ff9f43'; ctx.font = '900 30px Arial';
-    ctx.fillText('Darwaza Bhaag Gaya!', W/2, 240);
-    ctx.fillStyle = '#e8e8ff'; ctx.font = '20px Arial';
-    ctx.fillText('5 level, har level mein ek naya dhoka.', W/2, 300);
-    ctx.fillText('Kaante, aara, girti chhat, nakli darwaze... aur ulta gravity!', W/2, 332);
-    ctx.fillStyle = '#8f7bff'; ctx.font = '700 22px Arial';
-    if (Math.floor(timeNow*1.6) % 2 === 0) ctx.fillText('— Press SPACE ya tap karo shuru karne ke liye —', W/2, 372);
-    ctx.fillStyle = '#9d9dc4'; ctx.font = '16px Arial';
-    ctx.fillText('Chalna: Arrow keys / A,D    •    Kudna: Space / W', W/2, 404);
-    /* demo door + player (bottom-right, clear of the centred text) */
+    /* demo door + player first (bottom-right): the player is now a 10x-long
+       noodle that towers up the right side, so the heading text is drawn
+       AFTER it and stays readable on top. */
     ctx.fillStyle = '#3b3573'; rr(600, 484, 300, 18, 5); ctx.fill();
     ctx.fillStyle = '#8f7bff'; ctx.fillRect(602, 484, 296, 4);
     var fakeL = { hasKey:true };
@@ -730,6 +802,19 @@ function draw(){
     var dd = { x:806, y:400, w:44, h:84, kind:'real', locked:false };
     var keepL = L; L = fakeL; drawDoor(dd); L = keepL;
     var keepP = player; player = { x:672, y:450, w:30, h:34, face:1, squash:0 }; drawPlayer(); player = keepP;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffd32a'; ctx.font = '900 74px Arial';
+    ctx.fillText('LEVEL DEVIL', W/2, 128);
+    ctx.fillText('PAGLU', W/2, 204);
+    ctx.fillStyle = '#ff9f43'; ctx.font = '900 28px Arial';
+    ctx.fillText('Darwaza Bhaag Gaya!', W/2, 248);
+    ctx.fillStyle = '#e8e8ff'; ctx.font = '20px Arial';
+    ctx.fillText('5 level, har level mein ek naya dhoka.', W/2, 296);
+    ctx.fillText('Kaante, aara, girti chhat, nakli darwaze... aur ulta gravity!', W/2, 328);
+    ctx.fillStyle = '#8f7bff'; ctx.font = '700 22px Arial';
+    if (Math.floor(timeNow*1.6) % 2 === 0) ctx.fillText('— Press SPACE ya tap karo shuru karne ke liye —', W/2, 366);
+    ctx.fillStyle = '#9d9dc4'; ctx.font = '16px Arial';
+    ctx.fillText('Chalna: Arrow keys / A,D    •    Kudna: Space / W', W/2, 398);
   }
   else if (L){
     /* gravity gates */
