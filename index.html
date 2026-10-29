@@ -721,8 +721,9 @@ function drawSaw(s){
 }
 function drawPlayer(){
   var p = player; if (!p) return;
-  /* MUSCULAR MAN (Sehrish's order): a chibi bodybuilder drawn in code —
-     big chest/shoulders, bulging biceps, red tank top, little legs,
+  /* MUSCULAR MAN, slimmed down a notch (Sehrish: "Slim kr thora"):
+     a fit chibi strongman drawn in code — lean chest/shoulders,
+     defined (not bulky) biceps, red tank top, little legs,
      determined grin + headband. Drawn around the hitbox centre; the
      collision hitbox is still exactly p.w x p.h — visual only. */
   var cx = p.x + p.w/2, cy = p.y + p.h/2;
@@ -738,32 +739,32 @@ function drawPlayer(){
   /* local space: +x = facing direction, feet at y=+17, head top at y=-20 */
   var SKIN = '#f0ac7e', SKIN_D = '#d98e5f', TOP = '#e03e2d', TOP_D = '#b92c1e';
   /* ---- back arm (far side, slightly darker): shoulder -> biceps bulge -> fist ---- */
-  var bFistY = 3 - run * 3.2, bFistX = -15.5 - run * 1.2;
+  var bFistY = 3 - run * 3.2, bFistX = -12.5 - run * 1.2;
   ctx.strokeStyle = SKIN_D; ctx.lineCap = 'round';
-  ctx.lineWidth = 5.4; ctx.beginPath(); ctx.moveTo(-11.5, -6); ctx.lineTo(bFistX, bFistY); ctx.stroke();
-  ctx.fillStyle = SKIN_D; ctx.beginPath(); ctx.ellipse(-13.5, -4.2, 4.6, 5.6, 0.5, 0, 7); ctx.fill();   /* biceps */
-  ctx.beginPath(); ctx.arc(bFistX, bFistY, 3.1, 0, 7); ctx.fill();                                     /* fist */
+  ctx.lineWidth = 4.4; ctx.beginPath(); ctx.moveTo(-8.5, -6); ctx.lineTo(bFistX, bFistY); ctx.stroke();
+  ctx.fillStyle = SKIN_D; ctx.beginPath(); ctx.ellipse(-10.5, -4.2, 3.3, 4.3, 0.5, 0, 7); ctx.fill();   /* biceps */
+  ctx.beginPath(); ctx.arc(bFistX, bFistY, 2.8, 0, 7); ctx.fill();                                     /* fist */
   /* ---- legs: little strong legs + shoes, alternating while running ---- */
-  ctx.strokeStyle = SKIN; ctx.lineWidth = 4.4;
-  ctx.beginPath(); ctx.moveTo(-4, 8); ctx.lineTo(-4.5 - run * 2.4, 14.6); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(4, 8);  ctx.lineTo(4.5 + run * 2.4, 14.6); ctx.stroke();
+  ctx.strokeStyle = SKIN; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(-3.4, 8); ctx.lineTo(-3.9 - run * 2.4, 14.6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(3.4, 8);  ctx.lineTo(3.9 + run * 2.4, 14.6); ctx.stroke();
   ctx.fillStyle = '#23232e';
-  ctx.beginPath(); ctx.ellipse(-5 - run * 2.4, 16.4, 4.4, 2.4, 0, 0, 7); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(5 + run * 2.4, 16.4, 4.4, 2.4, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-4.3 - run * 2.4, 16.4, 4.2, 2.4, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(4.3 + run * 2.4, 16.4, 4.2, 2.4, 0, 0, 7); ctx.fill();
   /* ---- shorts ---- */
-  ctx.fillStyle = '#2c3e70'; rr(-8.5, 3.5, 17, 6.5, 2.5); ctx.fill();
-  /* ---- torso: red tank top, broad shoulders tapering to the waist, chest bulge ---- */
+  ctx.fillStyle = '#2c3e70'; rr(-7, 3.5, 14, 6.5, 2.5); ctx.fill();
+  /* ---- torso: red tank top, lean shoulders tapering to the waist, defined chest ---- */
   ctx.fillStyle = TOP;
   ctx.beginPath();
-  ctx.moveTo(-8, 5); ctx.lineTo(-13.5, -4);
-  ctx.quadraticCurveTo(-14.5, -8.5, -9, -9.5);             /* left shoulder */
-  ctx.lineTo(9, -9.5);
-  ctx.quadraticCurveTo(14.5, -8.5, 13.5, -4);
-  ctx.lineTo(8, 5); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = TOP_D; rr(-8, 3.4, 16, 2.2, 1); ctx.fill();   /* waistband shadow */
+  ctx.moveTo(-6.5, 5); ctx.lineTo(-10, -4);
+  ctx.quadraticCurveTo(-10.5, -8.5, -7, -9.5);             /* left shoulder */
+  ctx.lineTo(7, -9.5);
+  ctx.quadraticCurveTo(10.5, -8.5, 10, -4);
+  ctx.lineTo(6.5, 5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = TOP_D; rr(-6.5, 3.4, 13, 2.2, 1); ctx.fill();   /* waistband shadow */
   ctx.fillStyle = 'rgba(255,255,255,.16)';
-  ctx.beginPath(); ctx.ellipse(-4.5, -4.5, 4.6, 3.4, -0.3, 0, 7); ctx.fill();   /* pec shine L */
-  ctx.beginPath(); ctx.ellipse(4.5, -4.5, 4.6, 3.4, 0.3, 0, 7); ctx.fill();     /* pec shine R */
+  ctx.beginPath(); ctx.ellipse(-3.4, -4.5, 3.2, 3, -0.3, 0, 7); ctx.fill();   /* pec shine L */
+  ctx.beginPath(); ctx.ellipse(3.4, -4.5, 3.2, 3, 0.3, 0, 7); ctx.fill();     /* pec shine R */
   /* tank-top straps + skin at the neck */
   ctx.fillStyle = SKIN; ctx.beginPath(); ctx.ellipse(0, -9.3, 3.6, 2.2, 0, 0, 7); ctx.fill();
   /* ---- head: determined cartoon face ---- */
@@ -796,13 +797,13 @@ function drawPlayer(){
   ctx.beginPath(); ctx.moveTo(0.6, -11.6); ctx.lineTo(1.6, -10.2); ctx.stroke();
   ctx.strokeStyle = '#7c3f16'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.arc(0.8, -9.6, 3.1, 0.25, Math.PI * 0.78); ctx.stroke();
-  /* ---- front arm: the big one — shoulder, bulging biceps, forearm, fist ---- */
-  var fFistY = 3 + run * 3.2, fFistX = 16 + run * 1.2;
-  ctx.strokeStyle = SKIN; ctx.lineWidth = 5.8;
-  ctx.beginPath(); ctx.moveTo(11.5, -6); ctx.lineTo(fFistX, fFistY); ctx.stroke();
-  ctx.fillStyle = SKIN; ctx.beginPath(); ctx.ellipse(14.2, -4.4, 5, 6.1, -0.5, 0, 7); ctx.fill();    /* biceps bulge */
-  ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.beginPath(); ctx.ellipse(12.8, -7.2, 2.2, 1.5, -0.6, 0, 7); ctx.fill();
-  ctx.fillStyle = SKIN; ctx.beginPath(); ctx.arc(fFistX, fFistY, 3.4, 0, 7); ctx.fill();               /* fist */
+  /* ---- front arm: shoulder, defined biceps, forearm, fist ---- */
+  var fFistY = 3 + run * 3.2, fFistX = 13 + run * 1.2;
+  ctx.strokeStyle = SKIN; ctx.lineWidth = 4.7;
+  ctx.beginPath(); ctx.moveTo(8.5, -6); ctx.lineTo(fFistX, fFistY); ctx.stroke();
+  ctx.fillStyle = SKIN; ctx.beginPath(); ctx.ellipse(11, -4.4, 3.6, 4.6, -0.5, 0, 7); ctx.fill();    /* biceps */
+  ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.beginPath(); ctx.ellipse(9.9, -6.9, 1.7, 1.2, -0.6, 0, 7); ctx.fill();
+  ctx.fillStyle = SKIN; ctx.beginPath(); ctx.arc(fFistX, fFistY, 3, 0, 7); ctx.fill();               /* fist */
   ctx.restore();
 }
 function draw(){
