@@ -42,6 +42,7 @@
     box-shadow:0 3px 0 #b3541e;
   }
   button.act:active { transform:translateY(2px); box-shadow:0 1px 0 #b3541e; }
+  #btnSongX { background:#ff5964; color:#fff; padding:8px 12px; box-shadow:0 3px 0 #8e2430; }
   #touch { display:none; }
   @media (pointer:coarse) {
     #touch {
@@ -69,6 +70,9 @@
     <span class="pill">Level: <span class="gold" id="hudLevel">—</span></span>
     <button class="act" id="btnRestart" type="button">Level Dobara</button>
     <button class="act" id="btnSound" type="button">Awaz: ON</button>
+    <button class="act" id="btnSong" type="button">🎵 Gana</button>
+    <button class="act" id="btnSongX" type="button" style="display:none" title="Apna gana hatao">✕</button>
+    <input type="file" id="fileSong" accept="audio/*" style="display:none">
   </div>
   <p class="hintline">Controls: &#8592; &#8594; ya A / D = chalna &nbsp;•&nbsp; Space / W / &#8593; = kudna &nbsp;•&nbsp; Mobile par neeche wale buttons</p>
 
@@ -149,7 +153,7 @@ function musNote(midi, t, dur, type, vol){
 function musTick(){
   if (!MUS.playing || !AC) return;
   while (MUS.nextT < AC.currentTime + 0.3){
-    if (soundOn){
+    if (soundOn && !customSong){
       var s = MUS.step % 32;
       musNote(MUS_MEL[s], MUS.nextT, MUS_STEP * 0.92, 'square', 0.024);
       if (s % 2 === 0) musNote(MUS_BAS[s / 2], MUS.nextT, MUS_STEP * 1.8, 'triangle', 0.045);
@@ -158,10 +162,90 @@ function musTick(){
   }
 }
 function musicStart(){
+  if (customSong){ songTryPlay(); return; }   /* apna gana laga ho to synth nahi, wahi bajega */
   if (!AC || MUS.playing) return;
   MUS.playing = true; MUS.step = 0; MUS.nextT = AC.currentTime + 0.06;
   MUS.timer = setInterval(musTick, 90);
 }
+
+/* -------- Apna Gana: khud ka song background music mein --------
+   Player apni audio file chunta hai; wohi loop mein bajti hai aur
+   synth dhun chup ho jati hai. File IndexedDB mein save rehti hai,
+   taake agli dafa isi device par khud hi lag jaye. Koi error aaye
+   to feature khamoshi se band — game kabhi nahi rukta. */
+var songEl = new Audio();
+songEl.loop = true;
+songEl.preload = 'auto';
+var customSong = false;
+var songURL = null;
+function songTryPlay(){
+  if (!customSong) return;
+  songEl.muted = !soundOn;
+  try { var pr = songEl.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){}
+}
+function songApply(blob){
+  try {
+    if (songURL) URL.revokeObjectURL(songURL);
+    songURL = URL.createObjectURL(blob);
+    songEl.src = songURL;
+    customSong = true;
+    document.getElementById('btnSongX').style.display = '';
+    document.getElementById('btnSong').textContent = '🎵 Gana ✓';
+    songTryPlay();
+  } catch(e){}
+}
+function songRemove(){
+  try { songEl.pause(); } catch(e){}
+  try { songEl.removeAttribute('src'); songEl.load(); } catch(e){}
+  if (songURL){ try { URL.revokeObjectURL(songURL); } catch(e){} songURL = null; }
+  customSong = false;
+  document.getElementById('btnSongX').style.display = 'none';
+  document.getElementById('btnSong').textContent = '🎵 Gana';
+  idbDel();
+  musicStart();   /* synth dhun wapas */
+}
+/* IndexedDB: db 'paglu', store 'songs', key 'bg' — sirf Blob save hota hai */
+function idbOpen(cb){
+  try {
+    var rq = indexedDB.open('paglu', 1);
+    rq.onupgradeneeded = function(){ try { rq.result.createObjectStore('songs'); } catch(e){} };
+    rq.onsuccess = function(){ cb(rq.result); };
+    rq.onerror = function(){ cb(null); };
+  } catch(e){ cb(null); }
+}
+function idbSave(blob){
+  idbOpen(function(db){
+    if (!db) return;
+    try { db.transaction('songs', 'readwrite').objectStore('songs').put(blob, 'bg'); } catch(e){}
+  });
+}
+function idbLoad(){
+  idbOpen(function(db){
+    if (!db) return;
+    try {
+      var rq = db.transaction('songs', 'readonly').objectStore('songs').get('bg');
+      rq.onsuccess = function(){ if (rq.result) songApply(rq.result); };
+      rq.onerror = function(){};
+    } catch(e){}
+  });
+}
+function idbDel(){
+  idbOpen(function(db){
+    if (!db) return;
+    try { db.transaction('songs', 'readwrite').objectStore('songs').delete('bg'); } catch(e){}
+  });
+}
+var fileSong = document.getElementById('fileSong');
+document.getElementById('btnSong').addEventListener('click', function(){ fileSong.click(); });
+fileSong.addEventListener('change', function(){
+  var f = fileSong.files && fileSong.files[0];
+  fileSong.value = '';
+  if (!f) return;
+  idbSave(f);
+  songApply(f);
+});
+document.getElementById('btnSongX').addEventListener('click', function(){ songRemove(); });
+idbLoad();   /* pichli dafa ka gana khud dhoondh lo */
 
 /* ---------------- Input ---------------- */
 var input = { left:false, right:false, jump:false, jumpHit:false };
@@ -194,6 +278,7 @@ document.getElementById('btnRestart').addEventListener('click', function(){
 });
 document.getElementById('btnSound').addEventListener('click', function(){
   soundOn = !soundOn; this.textContent = 'Awaz: ' + (soundOn ? 'ON' : 'OFF'); if (soundOn) { audioInit(); musicStart(); sfx('key'); }
+  songEl.muted = !soundOn;   /* Awaz band = apna gana bhi band */
 });
 
 /* ---------------- Helpers ---------------- */
@@ -841,6 +926,10 @@ function draw(){
     if (Math.floor(timeNow*1.6) % 2 === 0) ctx.fillText('— Press SPACE ya tap karo shuru karne ke liye —', W/2, 366);
     ctx.fillStyle = '#9d9dc4'; ctx.font = '16px Arial';
     ctx.fillText('Chalna: Arrow keys / A,D    •    Kudna: Space / W', W/2, 398);
+    if (!customSong){
+      ctx.fillStyle = '#6f6f9c'; ctx.font = '15px Arial';
+      ctx.fillText('Apna gana lagana hai? Upar 🎵 Gana dabao', W/2, 428);
+    }
   }
   else if (L){
     /* gravity gates */
