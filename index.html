@@ -126,6 +126,7 @@ function sfx(name){
   else if (name === 'teleport') beep(900, 200, 0.22, 'sine', 0.06);
   else if (name === 'flip') beep(200, 1200, 0.3, 'sine', 0.05);
   else if (name === 'pop') beep(500, 900, 0.07, 'square', 0.03);
+  else if (name === 'boing') beep(150, 760, 0.2, 'square', 0.05);
   else if (name === 'dodge') beep(700, 1100, 0.1, 'sine', 0.04);
 }
 
@@ -310,14 +311,17 @@ var TAUNTS = [
   'Ek aur try? Darwaza intezaar kar raha hai',
   'Ye maut nahi, practice hai!',
   'Level ne kaha: phir aana!',
-  'Tum girte boht achay ho!'
+  'Tum girte boht achay ho!',
+  'Darwaza to yahin tha... chhupa hua!',
+  'Chabi ne bhi bhaagna seekh liya!',
+  'Painting wala darwaza kha gaya!'
 ];
 
 /* ---------------- Level construction ---------------- */
 function P(x,y,w,h,type){ return { x:x, y:y, w:w, h:h, type:type||'solid',
   stand:0, alpha:1, state:'idle', timer:0, vy:0, stood:false, baseY:y }; }
 function SPK(x, baseY, w, mode){ return { x:x, baseY:baseY, w:w, mode:mode||'static',
-  maxH:26, cur:(mode==='popup'||mode==='stand') ? 0 : 1, cool:0 }; }
+  maxH:26, cur:(mode==='popup'||mode==='stand'||mode==='button') ? 0 : 1, cool:0 }; }
 function SAW(x,y,r,axis,from,to,speed){ return { x:x, y:y, r:r, axis:axis, from:from, to:to,
   speed:speed, dir:1, ang:0 }; }
 function DOOR(x,y,kind){ return { x:x, y:y, w:44, h:84, kind:kind||'real', homeX:x, homeY:y }; }
@@ -325,7 +329,8 @@ function DOOR(x,y,kind){ return { x:x, y:y, w:44, h:84, kind:kind||'real', homeX
 function buildLevel(n){
   var L = { name:'', hint:'', start:{x:36,y:440}, platforms:[], spikes:[], saws:[],
             doors:[], key:null, hasKey:false, wall:null, ceiling:null, blocks:[],
-            safePlat:null, gates:[], gdir:1, doorRun:null, msg:'', msgT:0 };
+            safePlat:null, gates:[], gdir:1, doorRun:null, springs:[], buttons:[],
+            ceilSpikes:[], teleDoor:null, poofs:[], msg:'', msgT:0 };
   if (n === 0){
     L.name = 'Pehla Dhoka';
     L.hint = 'Bas darwaze tak pohoncho. Bilkul asaan... haina?';
@@ -389,9 +394,52 @@ function buildLevel(n){
     L.doorRun = { door:rd, spots:[812,738,700], idx:0, cool:0, done:false };
     L.start = { x:30, y:440 };
   }
+  else if (n === 5){
+    L.name = 'Chhupa Darwaza';
+    L.hint = 'Jo darwaza dikh raha hai wo jhoot hai. Asli kahin chhupa hai — chamak dhundo!';
+    L.platforms = [ P(0,500,960,40),
+      P(210,392,110,16), P(560,372,110,16), P(360,268,120,16) ];
+    L.spikes = [ SPK(300,500,44,'popup'), SPK(640,500,44,'popup') ];
+    L.saws = [ SAW(770,474,21,'x',730,830,105) ];
+    var hd6 = DOOR(452,416,'real'); hd6.hidden = true; hd6.reveal = 0;
+    var bd6 = DOOR(886,416,'eat'); bd6.fakeLook = true;
+    bd6.taunt = 'Ye to sirf painting thi! Asli darwaza chhupa hai!';
+    L.doors = [ hd6, bd6 ];
+  }
+  else if (n === 6){
+    L.name = 'Bhaagti Chabi';
+    L.hint = 'Chabi bhi bhaagti hai, darwaza bhi gayab hota hai. Button se bach ke!';
+    L.platforms = [ P(0,500,430,40), P(520,500,440,40),
+      P(520,410,70,14), P(560,330,220,18) ];
+    var bs1 = SPK(318,500,50,'button'), bs2 = SPK(374,500,50,'button');
+    L.spikes = [ bs1, bs2, SPK(600,500,44,'popup') ];
+    L.buttons = [ { x:246, y:490, w:34, h:10, fired:false, link:[bs1, bs2] } ];
+    L.springs = [ { x:660, y:488, w:38, h:12, power:1150, squash:0 } ];
+    L.key = { x:600, y:294, taken:false, bob:0, spots:[600,668,736], idx:0, cool:0 };
+    var td7 = DOOR(886,416,'real'); td7.locked = true;
+    L.doors = [ td7 ];
+    L.teleDoor = { door:td7, idx:0, cool:0, done:false,
+      spots:[ {x:886,y:416}, {x:580,y:246}, {x:120,y:416}, {x:886,y:416} ] };
+  }
+  else if (n === 7){
+    L.name = 'Darwaza Mela';
+    L.hint = 'Darwazon ka mela, spring ka jhoola, aakhir mein ulta gravity. Asli darwaza upar hai — sitara dhundo!';
+    L.platforms = [ P(0,500,560,40),
+      P(600,392,110,16), P(716,392,110,16),
+      P(700,0,260,34) ];                     /* ceiling slab (floor when flipped) */
+    L.spikes = [ SPK(180,500,44,'popup') ];
+    L.ceilSpikes = [ { x:82, y:104, w:110, h:26 } ];
+    L.springs = [ { x:118, y:488, w:38, h:12, power:1300, squash:0 },   /* trap spring */
+                  { x:520, y:488, w:38, h:12, power:1150, squash:0 } ]; /* fair spring */
+    L.doors = [ DOOR(240,416,'eat'), DOOR(318,416,'teleport'),
+                DOOR(396,416,'teleport'), DOOR(474,416,'eat') ];
+    var fd8 = DOOR(890,34,'real'); fd8.star = true;   /* hangs from the ceiling slab */
+    L.doors.push(fd8);
+    L.gates = [ { x1:742, x2:768, to:-1, label:'GRAVITY ULTA!' } ];
+  }
   return L;
 }
-var LEVEL_COUNT = 5;
+var LEVEL_COUNT = 8;
 
 /* ---------------- Game state ---------------- */
 var state = 'title';           /* title | intro | play | dead | clear | win */
@@ -564,11 +612,25 @@ function update(dt){
       if (onSafe){ sp.cool += dt; if (sp.cool > 0.22){ if (sp.cur === 0) sfx('pop'); sp.cur = Math.min(1, sp.cur + dt*7); } }
       else { sp.cool = 0; sp.cur = Math.max(0, sp.cur - dt*3); }
     }
+    else if (sp.mode === 'button'){
+      if (sp.armed) sp.cur = Math.min(1, sp.cur + dt*5);
+    }
   }
 
   /* --- key --- */
   if (L.key && !L.key.taken){
     L.key.bob = Math.sin(timeNow*3.2) * 4;
+    /* runaway key: qareeb aane par do dafa side par bhaagti hai, phir thak jati hai */
+    var kk = L.key;
+    if (kk.spots){
+      if (kk.cool > 0) kk.cool -= dt;
+      var kdx = Math.abs(kk.x - (player.x + player.w/2));
+      var kdy = Math.abs(kk.y - (player.y + player.h/2));
+      if (kdx < 58 && kdy < 64 && kk.cool <= 0 && kk.idx < kk.spots.length - 1){
+        kk.idx++; kk.x = kk.spots[kk.idx]; kk.cool = 0.55; sfx('dodge');
+        showBanner(kk.idx >= kk.spots.length - 1 ? 'Chabi thak gayi! Pakad lo!' : 'Chabi bhi bhaag gayi!', 1.0);
+      }
+    }
     if (overlap(player, { x:L.key.x-6, y:L.key.y-6, w:34, h:34 })){
       L.key.taken = true; L.hasKey = true; sfx('key'); showBanner('Chabi mil gayi! Ab darwaza khulega!', 1.8);
     }
@@ -593,6 +655,36 @@ function update(dt){
       else showBanner('Darwaza bhaag gaya!', 0.9);
     }
   }
+
+  /* --- teleporting door: qareeb aane par agli jagah gayab, 3 dafa ke baad ruk jata hai --- */
+  if (L.teleDoor && !L.teleDoor.done){
+    var td = L.teleDoor, tdr = td.door;
+    if (td.cool > 0) td.cool -= dt;
+    var tdx2 = Math.abs((tdr.x + tdr.w/2) - (player.x + player.w/2));
+    var tdy2 = Math.abs((tdr.y + tdr.h/2) - (player.y + player.h/2));
+    if (tdx2 < 62 && tdy2 < 80 && td.cool <= 0 && td.idx < td.spots.length - 1){
+      L.poofs.push({ x:tdr.x + tdr.w/2, y:tdr.y + tdr.h/2, t:0 });
+      td.idx++; tdr.x = td.spots[td.idx].x; tdr.y = td.spots[td.idx].y;
+      L.poofs.push({ x:tdr.x + tdr.w/2, y:tdr.y + tdr.h/2, t:0 });
+      td.cool = 0.7; sfx('teleport');
+      if (td.idx >= td.spots.length - 1){ td.done = true; showBanner('Darwaza: ab nahi bhaagunga... pakdo!', 1.6); }
+      else showBanner('Darwaza gayab! Kahin aur gaya!', 1.0);
+    }
+  }
+
+  /* --- hidden doors: player qareeb aaye to ubhar aata hai --- */
+  for (i = 0; i < L.doors.length; i++){
+    var hd = L.doors[i];
+    if (!hd.hidden) continue;
+    var hdx = (player.x + player.w/2) - (hd.x + hd.w/2);
+    var hdy = (player.y + player.h/2) - (hd.y + hd.h/2);
+    var hdist = Math.sqrt(hdx*hdx + hdy*hdy);
+    var htar = hdist < 78 ? 1 : 0;
+    hd.reveal = clamp((hd.reveal || 0) + (htar ? dt*2.6 : -dt*1.6), 0, 1);
+  }
+
+  /* --- teleport poofs --- */
+  for (i = L.poofs.length - 1; i >= 0; i--){ L.poofs[i].t += dt; if (L.poofs[i].t > 0.35) L.poofs.splice(i, 1); }
 
   /* ================= PLAYER ================= */
   var solids = solidsList();
@@ -657,6 +749,28 @@ function update(dt){
   if (player.grounded && !wasGrounded) player.squash = 0.12;
   if (player.squash > 0) player.squash -= dt;
 
+  /* --- spring pads: upar girte hi uchhaal dete hain --- */
+  for (i = 0; i < L.springs.length; i++){
+    var spr = L.springs[i];
+    if (spr.squash > 0) spr.squash -= dt;
+    if (player.vy * gdir >= -40 && overlap(player, { x:spr.x + 2, y:spr.y - 6, w:spr.w - 4, h:spr.h + 12 })){
+      player.y = (gdir === 1) ? spr.y - player.h : spr.y + spr.h;
+      player.vy = -spr.power * gdir;
+      player.grounded = false; player.standingOn = null;
+      player.jumpCut = true;   /* spring uchhaal ko jump-cut se bachao */
+      spr.squash = 0.16; sfx('boing');
+    }
+  }
+
+  /* --- floor buttons: dabao to aage kaante wali trap chal jati hai --- */
+  for (i = 0; i < L.buttons.length; i++){
+    var bt2 = L.buttons[i];
+    if (!bt2.fired && overlap(player, { x:bt2.x - 2, y:bt2.y - 9, w:bt2.w + 4, h:bt2.h + 12 })){
+      bt2.fired = true; sfx('pop'); showBanner('Button dab gaya! Aage kaante!', 1.3);
+      for (var bi = 0; bi < bt2.link.length; bi++) bt2.link[bi].armed = true;
+    }
+  }
+
   /* wall push: if the wall now overlaps the player, shove the player along */
   if (L.wall && overlap(player, L.wall)){
     player.x = L.wall.x + L.wall.w;
@@ -681,6 +795,10 @@ function update(dt){
     var topHz = { x:bb.x + 2, y:bb.y - 13, w:bb.w - 4, h:15 };
     if (overlap(player, topHz)) { die('Block ke kaante! Sambhal ke!'); return; }
   }
+  for (i = 0; i < L.ceilSpikes.length; i++){
+    var csh = L.ceilSpikes[i];
+    if (overlap(player, { x:csh.x + 4, y:csh.y + 3, w:csh.w - 8, h:csh.h - 3 })) { die('Upar ke kaante! Spring ne dhoka diya!'); return; }
+  }
   /* fell out of the world */
   if (player.y > H + 60 || player.y < -190) { die(); return; }
 
@@ -688,7 +806,7 @@ function update(dt){
   for (i = 0; i < L.doors.length; i++){
     var d = L.doors[i];
     if (!overlap(player, d)) continue;
-    if (d.kind === 'eat'){ die('Darwaze ne kha liya! Ye wala nakli tha!'); return; }
+    if (d.kind === 'eat'){ die(d.taunt || 'Darwaze ne kha liya! Ye wala nakli tha!'); return; }
     if (d.kind === 'teleport'){
       player.x = L.start.x; player.y = L.start.y; player.vx = 0; player.vy = 0;
       sfx('teleport'); showBanner('Ye nakli darwaza tha! Wapas start!', 1.6);
@@ -766,20 +884,53 @@ function drawPlatform(p){
 function drawDoor(d){
   var locked = d.locked && !L.hasKey;
   ctx.save();
+  if (d.hidden){
+    /* chhupa darwaza: sirf ek halki chamak har ~2s isharah karti hai;
+       player qareeb aaye to darwaza ubhar aata hai */
+    var tw = Math.pow(Math.max(0, Math.sin(timeNow * Math.PI + d.x)), 10);
+    if (tw > 0.03){
+      ctx.globalAlpha = tw * 0.85; ctx.fillStyle = '#ffe66d';
+      star(d.x + 8, d.y + 14, 5); ctx.fill();
+      star(d.x + d.w - 9, d.y + 30, 3.6); ctx.fill();
+    }
+    ctx.globalAlpha = d.reveal || 0;
+    if ((d.reveal || 0) <= 0.02){ ctx.restore(); return; }
+  }
   ctx.fillStyle = '#241a3f'; rr(d.x - 5, d.y - 6, d.w + 10, d.h + 6, 6); ctx.fill();
   var body = d.kind === 'eat' ? '#c0392b' : (d.kind === 'teleport' ? '#6c3483' : '#e67e22');
+  if (d.fakeLook) body = '#e67e22';   /* painting wala darwaza: bilkul asli jaisa rang */
   if (locked) body = '#7f8c9b';
   ctx.fillStyle = body; rr(d.x, d.y, d.w, d.h, 4); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(d.x + 6, d.y + 8, d.w - 12, 26); ctx.fillRect(d.x + 6, d.y + 44, d.w - 12, 30);
   ctx.fillStyle = '#ffd32a'; ctx.beginPath(); ctx.arc(d.x + d.w - 10, d.y + d.h/2, 4.5, 0, 7); ctx.fill();
-  if (d.kind === 'real' && levelIdx === 2){ ctx.fillStyle = '#ffe66d'; star(d.x + d.w/2, d.y + 20, 9); ctx.fill(); }
-  if (d.kind === 'eat'){ ctx.fillStyle = '#fff'; ctx.font = '15px Arial'; ctx.textAlign = 'center'; ctx.fillText('~ ~', d.x + d.w/2, d.y + 34); }
+  if (d.kind === 'real' && (levelIdx === 2 || d.star)){ ctx.fillStyle = '#ffe66d'; star(d.x + d.w/2, d.y + 20, 9); ctx.fill(); }
+  if (d.kind === 'eat' && !d.fakeLook){ ctx.fillStyle = '#fff'; ctx.font = '15px Arial'; ctx.textAlign = 'center'; ctx.fillText('~ ~', d.x + d.w/2, d.y + 34); }
   if (locked){
     ctx.fillStyle = '#2d3436'; rr(d.x + d.w/2 - 10, d.y + 36, 20, 17, 3); ctx.fill();
     ctx.strokeStyle = '#2d3436'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(d.x + d.w/2, d.y + 36, 7, Math.PI, 0); ctx.stroke();
     ctx.fillStyle = '#ffd32a'; ctx.beginPath(); ctx.arc(d.x + d.w/2, d.y + 44, 3.4, 0, 7); ctx.fill();
   }
+  ctx.restore();
+}
+function drawSpring(s){
+  var sq = (s.squash > 0) ? 0.5 : 1;
+  var top = s.y + (1 - sq) * 6;
+  ctx.save();
+  ctx.fillStyle = '#2d3436'; rr(s.x - 2, s.y + s.h - 4, s.w + 4, 4, 2); ctx.fill();   /* base */
+  ctx.strokeStyle = '#ffd32a'; ctx.lineWidth = 2.4;
+  for (var e = 0; e < 3; e++){
+    var ey = s.y + s.h - 6 - e * ((s.h - 4) * sq) / 2.4;
+    ctx.beginPath(); ctx.ellipse(s.x + s.w/2, ey, s.w/2 - 3, 2.6, 0, 0, 7); ctx.stroke();
+  }
+  ctx.fillStyle = '#ff5964'; rr(s.x - 3, top - 3, s.w + 6, 5, 2); ctx.fill();          /* top plate */
+  ctx.restore();
+}
+function drawButton(b){
+  ctx.save();
+  ctx.fillStyle = '#2d3436'; rr(b.x - 3, b.y + 4, b.w + 6, 6, 2); ctx.fill();
+  ctx.fillStyle = b.fired ? '#7f1d1d' : '#e84118';
+  rr(b.x, b.y + (b.fired ? 5 : 0), b.w, 6, 3); ctx.fill();
   ctx.restore();
 }
 function drawKey(k){
@@ -920,7 +1071,7 @@ function draw(){
     ctx.fillStyle = '#ff9f43'; ctx.font = '900 28px Arial';
     ctx.fillText('Darwaza Bhaag Gaya!', W/2, 248);
     ctx.fillStyle = '#e8e8ff'; ctx.font = '20px Arial';
-    ctx.fillText('5 level, har level mein ek naya dhoka.', W/2, 296);
+    ctx.fillText('8 level, har level mein ek naya dhoka.', W/2, 296);
     ctx.fillText('Kaante, aara, girti chhat, nakli darwaze... aur ulta gravity!', W/2, 328);
     ctx.fillStyle = '#8f7bff'; ctx.font = '700 22px Arial';
     if (Math.floor(timeNow*1.6) % 2 === 0) ctx.fillText('— Press SPACE ya tap karo shuru karne ke liye —', W/2, 366);
@@ -971,6 +1122,17 @@ function draw(){
       var sp = L.spikes[i];
       drawSpikes(sp.x, sp.baseY, sp.w, sp.cur * sp.maxH, false);
     }
+    /* hanging ceiling-spike panels */
+    for (i = 0; i < L.ceilSpikes.length; i++){
+      var csp = L.ceilSpikes[i];
+      ctx.fillStyle = 'rgba(59,53,115,.55)';
+      ctx.fillRect(csp.x + 6, 0, 5, csp.y); ctx.fillRect(csp.x + csp.w - 11, 0, 5, csp.y);
+      ctx.fillStyle = '#3b3573'; rr(csp.x - 2, csp.y - 6, csp.w + 4, 8, 3); ctx.fill();
+      drawSpikes(csp.x, csp.y, csp.w, csp.h, true);
+    }
+    /* spring pads + floor buttons */
+    for (i = 0; i < L.springs.length; i++) drawSpring(L.springs[i]);
+    for (i = 0; i < L.buttons.length; i++) drawButton(L.buttons[i]);
     /* key + doors + saws */
     if (L.key) drawKey(L.key);
     for (i = 0; i < L.doors.length; i++) drawDoor(L.doors[i]);
@@ -980,6 +1142,12 @@ function draw(){
       ctx.font = '12px Arial'; ctx.fillText('aa jao, nahi bhaagunga', L.doorRun.door.x + 22, L.doorRun.door.y - 16);
     }
     for (i = 0; i < L.saws.length; i++) drawSaw(L.saws[i]);
+    /* teleport poofs */
+    for (i = 0; i < L.poofs.length; i++){
+      var pf = L.poofs[i];
+      ctx.strokeStyle = 'rgba(187,107,217,' + (0.55 * (1 - pf.t / 0.35)) + ')'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(pf.x, pf.y, 8 + pf.t * 52, 0, 7); ctx.stroke();
+    }
     /* player */
     if (state !== 'dead') drawPlayer();
     else { /* ghost poof on death */
