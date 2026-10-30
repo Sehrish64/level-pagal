@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#14142b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>LEVEL DEVIL PAGLU — Darwaza Bhaag Gaya!</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -1688,6 +1690,16 @@ window.PAGLU = {
     }
   } catch(e){}
 })();
+</script>
+<script>
+/* PWA: offline shell — registers the service worker (additive only). */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    try {
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    } catch (e) {}
+  });
+}
 </script>
 </body>
 </html>

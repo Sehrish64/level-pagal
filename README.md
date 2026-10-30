@@ -37,6 +37,7 @@ Upar diye gaye **🎵 Gana** button se apne phone/computer ki koi bhi song file 
 - Har maut par ek naya Roman Urdu tana (taunt) — "Wah beta wah!", "Phir mar gaye? Shocking!"
 - **Bolne wale taanay (Urdu voice narration)** — ab game sirf likhta nahi, BOLTA bhi hai: marne par "Hahahaha!" aur "Chhoti bachi ho kya?", khatre ke paas jane par "Mara mara!" / "Gir jaye ga!", hosla dene ke liye "Tum kar sakte ho!", aur jeet par pura jashn. Saath mein **Afghani truck horn** — darwaza bhaage ya dhakka-deewar aaye to "paaan paaa!"
 - Sirf **ek HTML file** mein poora game — koi asset, koi download, koi ads nahi
+- 📱 **Install karo, offline khelo** — game ko phone ki home screen par app ki tarah lagao; pehli dafa kholne ke baad **baghair internet ke bhi poora chalta hai** (load-shedding ho ya data khatam!)
 
 ---
 
