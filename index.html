@@ -529,11 +529,14 @@ function buildLevel(n){
     L.name = 'Teen Darwaze';
     L.hint = 'Teen darwaze hain! Suna hai asli darwaze par chhota sitara hota hai.';
     L.platforms = [ P(0,500,960,40), P(392,352,190,18,'safe'),
-                    P(520,446,96,14), P(628,412,96,14), P(724,360,236,18) ];
+                    P(506,450,110,14), P(628,410,140,14), P(780,372,180,14) ];
     L.safePlat = L.platforms[1];
     L.spikes = [ SPK(414,352,148,'stand') ];
     L.saws = [ SAW(170,474,23,'x',170,590,135) ];
-    L.doors = [ DOOR(740,276,'eat'), DOOR(822,276,'teleport'), DOOR(904,276,'real') ];
+    var eat3 = DOOR(718,326,'eat'); eat3.w = 50;        /* Step B par khara nakli darwaza */
+    var tel3 = DOOR(806,288,'teleport'); tel3.w = 50;   /* Step C par teleport darwaza */
+    var real3 = DOOR(890,288,'real'); real3.w = 50;     /* Step C par asli darwaza (sitara) */
+    L.doors = [ eat3, tel3, real3 ];
   }
   else if (n === 3){
     L.name = 'Dhakka Aur Chhat';
