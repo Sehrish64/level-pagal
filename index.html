@@ -128,6 +128,7 @@ function sfx(name){
   else if (name === 'pop') beep(500, 900, 0.07, 'square', 0.03);
   else if (name === 'boing') beep(150, 760, 0.2, 'square', 0.05);
   else if (name === 'dodge') beep(700, 1100, 0.1, 'sine', 0.04);
+  else if (name === 'shot') beep(170, 55, 0.1, 'square', 0.05);
 }
 
 /* -------- Background music: tiny WebAudio chiptune loop (no files) --------
@@ -314,7 +315,9 @@ var TAUNTS = [
   'Tum girte boht achay ho!',
   'Darwaza to yahin tha... chhupa hua!',
   'Chabi ne bhi bhaagna seekh liya!',
-  'Painting wala darwaza kha gaya!'
+  'Painting wala darwaza kha gaya!',
+  'Aag se khela, jal gaya!',
+  'Goli kha li! Cover ke peeche chhupna tha!'
 ];
 
 /* ---------------- Level construction ---------------- */
@@ -325,12 +328,16 @@ function SPK(x, baseY, w, mode){ return { x:x, baseY:baseY, w:w, mode:mode||'sta
 function SAW(x,y,r,axis,from,to,speed){ return { x:x, y:y, r:r, axis:axis, from:from, to:to,
   speed:speed, dir:1, ang:0 }; }
 function DOOR(x,y,kind){ return { x:x, y:y, w:44, h:84, kind:kind||'real', homeX:x, homeY:y }; }
+function FLAME(x, baseY, w, phase){ return { x:x, baseY:baseY, w:w, t:phase||0, state:'off', upK:0 }; }
+function CANNON(x, y, dir, interval, offset, speed){ return { x:x, y:y, dir:dir, interval:interval,
+  t:-(offset||0), speed:speed||300, flash:false, post:false, wallM:false }; }
 
 function buildLevel(n){
   var L = { name:'', hint:'', start:{x:36,y:440}, platforms:[], spikes:[], saws:[],
             doors:[], key:null, hasKey:false, wall:null, ceiling:null, blocks:[],
             safePlat:null, gates:[], gdir:1, doorRun:null, springs:[], buttons:[],
-            ceilSpikes:[], teleDoor:null, poofs:[], msg:'', msgT:0 };
+            ceilSpikes:[], teleDoor:null, poofs:[], flames:[], cannons:[], bullets:[],
+            msg:'', msgT:0 };
   if (n === 0){
     L.name = 'Pehla Dhoka';
     L.hint = 'Bas darwaze tak pohoncho. Bilkul asaan... haina?';
@@ -355,11 +362,11 @@ function buildLevel(n){
     L.name = 'Teen Darwaze';
     L.hint = 'Teen darwaze hain! Suna hai asli darwaze par chhota sitara hota hai.';
     L.platforms = [ P(0,500,960,40), P(392,352,190,18,'safe'),
-                    P(636,446,74,14), P(716,404,74,14), P(700,352,260,18) ];
+                    P(636,456,96,14), P(712,414,96,14), P(700,368,260,18) ];
     L.safePlat = L.platforms[1];
     L.spikes = [ SPK(414,352,148,'stand') ];
-    L.saws = [ SAW(170,474,23,'x',170,660,135) ];
-    L.doors = [ DOOR(716,268,'eat'), DOOR(798,268,'teleport'), DOOR(880,268,'real') ];
+    L.saws = [ SAW(170,474,23,'x',170,590,135) ];
+    L.doors = [ DOOR(716,284,'eat'), DOOR(798,284,'teleport'), DOOR(880,284,'real') ];
   }
   else if (n === 3){
     L.name = 'Dhakka Aur Chhat';
@@ -437,9 +444,26 @@ function buildLevel(n){
     L.doors.push(fd8);
     L.gates = [ { x1:742, x2:768, to:-1, label:'GRAVITY ULTA!' } ];
   }
+  else if (n === 8){
+    L.name = 'Aag Aur Goliyan';
+    L.hint = 'Aag ke sholay, goliyon ki baarish, aur seedhi ke upar darwaza. Timing hi zindagi hai!';
+    L.platforms = [ P(0,500,960,40),
+      P(330,446,54,54),                    /* cover block: goliyon se bachao, upar bhi khade ho sakte ho */
+      P(654,446,76,14),                    /* seedhi: solid, solid, ghayab wali, solid */
+      P(724,392,76,14),
+      P(790,338,76,14,'step'),             /* troll: ye seedhi pair rakhne ke baad gayab hoti hai */
+      P(738,284,76,14),
+      P(820,230,140,18) ];                 /* upar wala plateau — darwaza yahin hai */
+    L.spikes = [ SPK(512,500,44,'popup') ];
+    L.flames = [ FLAME(236,500,46,0), FLAME(440,500,46,0.8), FLAME(606,500,46,1.6) ];
+    var cn1 = CANNON(700,470,-1,2.3,1.4,320); cn1.post = true;   /* zameen wali goli-bandi */
+    var cn2 = CANNON(16,366,1,3.1,0.9,290);  cn2.wallM = true;    /* seedhi wali goli-bandi */
+    L.cannons = [ cn1, cn2 ];
+    L.doors = [ DOOR(892,146) ];
+  }
   return L;
 }
-var LEVEL_COUNT = 8;
+var LEVEL_COUNT = 9;
 
 /* ---------------- Game state ---------------- */
 var state = 'title';           /* title | intro | play | dead | clear | win */
@@ -598,6 +622,29 @@ function update(dt){
     else { s.y += s.speed * s.dir * dt; if (s.y > s.to){ s.y = s.to; s.dir = -1; } if (s.y < s.from){ s.y = s.from; s.dir = 1; } }
   }
 
+  /* --- fire jets: cycle 2.4s = chup 1.2s -> ember warning 0.4s -> sholay 0.8s --- */
+  for (i = 0; i < L.flames.length; i++){
+    var fj = L.flames[i];
+    fj.t += dt;
+    var fcyc = fj.t % 2.4;
+    var fstate = fcyc < 1.2 ? 'off' : (fcyc < 1.6 ? 'warn' : 'up');
+    if (fstate === 'up' && fj.state !== 'up' && Math.abs(player.x - fj.x) < 320) sfx('pop');
+    fj.state = fstate;
+    fj.upK = (fstate === 'up') ? Math.min(1, fj.upK + dt * 13) : 0;
+  }
+
+  /* --- cannons: waqt par goli, us se pehle muzzle par chamak (fair warning) --- */
+  for (i = 0; i < L.cannons.length; i++){
+    var cn = L.cannons[i];
+    cn.t += dt;
+    cn.flash = cn.t >= cn.interval - 0.25 && cn.t < cn.interval;
+    if (cn.t >= cn.interval){
+      cn.t = 0;
+      L.bullets.push({ x: cn.x + cn.dir * 34, y: cn.y, dir: cn.dir, speed: cn.speed });
+      sfx('shot');
+    }
+  }
+
   /* --- spikes --- */
   for (i = 0; i < L.spikes.length; i++){
     var sp = L.spikes[i];
@@ -688,6 +735,18 @@ function update(dt){
 
   /* ================= PLAYER ================= */
   var solids = solidsList();
+
+  /* --- bullets: chalti hain, cover/deewar se takra kar khatam --- */
+  for (i = L.bullets.length - 1; i >= 0; i--){
+    var bl = L.bullets[i];
+    bl.x += bl.dir * bl.speed * dt;
+    var bdead = bl.x < -24 || bl.x > W + 24;
+    if (!bdead){
+      var bbox = { x: bl.x - 5, y: bl.y - 5, w: 10, h: 10 };
+      for (var bsi = 0; bsi < solids.length; bsi++){ if (overlap(bbox, solids[bsi])) { bdead = true; break; } }
+    }
+    if (bdead) L.bullets.splice(i, 1);
+  }
 
   /* horizontal input */
   var move = 0;
@@ -798,6 +857,17 @@ function update(dt){
   for (i = 0; i < L.ceilSpikes.length; i++){
     var csh = L.ceilSpikes[i];
     if (overlap(player, { x:csh.x + 4, y:csh.y + 3, w:csh.w - 8, h:csh.h - 3 })) { die('Upar ke kaante! Spring ne dhoka diya!'); return; }
+  }
+  for (i = 0; i < L.flames.length; i++){
+    var fh = L.flames[i];
+    if (fh.state === 'up' && fh.upK > 0.55){
+      var fhz = { x: fh.x + 7, y: fh.baseY - 118 * fh.upK + 12, w: fh.w - 14, h: 118 * fh.upK - 6 };
+      if (overlap(player, fhz)) { die('Aag ne lapait liya! Sholay gin ke cross karo!'); return; }
+    }
+  }
+  for (i = 0; i < L.bullets.length; i++){
+    var bh = L.bullets[i];
+    if (overlap(player, { x: bh.x - 6, y: bh.y - 6, w: 12, h: 12 })) { die('Goli lagi! Cover ke peeche chhupna tha!'); return; }
   }
   /* fell out of the world */
   if (player.y > H + 60 || player.y < -190) { die(); return; }
@@ -931,6 +1001,71 @@ function drawButton(b){
   ctx.fillStyle = '#2d3436'; rr(b.x - 3, b.y + 4, b.w + 6, 6, 2); ctx.fill();
   ctx.fillStyle = b.fired ? '#7f1d1d' : '#e84118';
   rr(b.x, b.y + (b.fired ? 5 : 0), b.w, 6, 3); ctx.fill();
+  ctx.restore();
+}
+function flameShape(x, baseY, w, h, sway, color){
+  if (h < 4) return;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x, baseY);
+  ctx.quadraticCurveTo(x + w * 0.08, baseY - h * 0.55, x + w/2 + sway, baseY - h);
+  ctx.quadraticCurveTo(x + w * 0.92, baseY - h * 0.55, x + w, baseY);
+  ctx.closePath(); ctx.fill();
+}
+function drawFlame(f){
+  /* floor vent / grate */
+  ctx.fillStyle = '#23232e'; rr(f.x - 3, f.baseY - 7, f.w + 6, 9, 2); ctx.fill();
+  ctx.fillStyle = '#576574';
+  for (var vx = f.x + 4; vx < f.x + f.w - 4; vx += 9) ctx.fillRect(vx, f.baseY - 5, 4, 3);
+  if (f.state === 'warn'){
+    /* ember warning: grate chamakta hai, chingariyan uthti hain, chhota pilot shola */
+    ctx.fillStyle = 'rgba(255,122,26,' + (0.4 + 0.3 * Math.sin(timeNow * 26)) + ')';
+    rr(f.x - 3, f.baseY - 7, f.w + 6, 4, 2); ctx.fill();
+    ctx.fillStyle = '#ffb35c';
+    for (var e = 0; e < 4; e++){
+      var ex = f.x + 5 + ((e * 37 + Math.floor(timeNow * 9 + f.x) * 13) % Math.max(8, f.w - 10));
+      var ey = f.baseY - 11 - ((timeNow * 46 + e * 17) % 26);
+      ctx.fillRect(ex, ey, 3, 3);
+    }
+    ctx.fillStyle = 'rgba(255,165,2,.8)';
+    ctx.beginPath(); ctx.ellipse(f.x + f.w/2, f.baseY - 11, 5, 7 + Math.sin(timeNow * 30) * 2, 0, 0, 7); ctx.fill();
+  }
+  if (f.state === 'up' && f.upK > 0){
+    var fh2 = 118 * f.upK, sway = Math.sin(timeNow * 21 + f.x) * 3.5;
+    flameShape(f.x - 3, f.baseY - 2, f.w + 6, fh2, sway, '#ff6b1a');
+    flameShape(f.x + 3, f.baseY - 2, f.w - 6, fh2 * 0.74, sway * 0.6, '#ffa502');
+    flameShape(f.x + 10, f.baseY - 2, f.w - 20, fh2 * 0.46, sway * 0.3, '#ffe66d');
+  }
+}
+function drawCannon(c){
+  ctx.save();
+  if (c.post){ /* zameen par khada khamba */
+    ctx.fillStyle = '#3f3f5c'; ctx.fillRect(c.x - 4, c.y + 12, 8, 500 - c.y - 12);
+    ctx.fillStyle = '#2b2b40'; ctx.fillRect(c.x - 10, 494, 20, 6);
+  }
+  if (c.wallM){ /* deewar par laga bracket */
+    ctx.fillStyle = '#3f3f5c'; ctx.fillRect(c.dir > 0 ? 0 : W - 8, c.y - 19, 8, 38);
+  }
+  ctx.fillStyle = '#2d3436';   /* barrel */
+  if (c.dir < 0) ctx.fillRect(c.x - 33, c.y - 4.5, 20, 9);
+  else ctx.fillRect(c.x + 13, c.y - 4.5, 20, 9);
+  ctx.fillStyle = '#576574'; rr(c.x - 15, c.y - 13, 30, 26, 5); ctx.fill();   /* body */
+  ctx.fillStyle = '#dfe6ee'; ctx.fillRect(c.x - 15, c.y - 13, 30, 5);
+  ctx.fillStyle = '#ff5964'; ctx.beginPath(); ctx.arc(c.x, c.y + 2, 4.5, 0, 7); ctx.fill();
+  if (c.flash){ /* goli se pehle muzzle par chamak */
+    ctx.globalAlpha = 0.55 + 0.45 * Math.sin(timeNow * 40);
+    ctx.fillStyle = '#ffe66d';
+    star(c.x + c.dir * 37, c.y, 8); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+function drawBullet(b){
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,211,42,.35)';
+  ctx.beginPath(); ctx.arc(b.x - b.dir * 11, b.y, 4.5, 0, 7); ctx.fill();
+  ctx.fillStyle = '#ffd32a'; ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, 7); ctx.fill();
+  ctx.fillStyle = '#fff3b0'; ctx.beginPath(); ctx.arc(b.x - 2, b.y - 2, 2.6, 0, 7); ctx.fill();
   ctx.restore();
 }
 function drawKey(k){
@@ -1071,7 +1206,7 @@ function draw(){
     ctx.fillStyle = '#ff9f43'; ctx.font = '900 28px Arial';
     ctx.fillText('Darwaza Bhaag Gaya!', W/2, 248);
     ctx.fillStyle = '#e8e8ff'; ctx.font = '20px Arial';
-    ctx.fillText('8 level, har level mein ek naya dhoka.', W/2, 296);
+    ctx.fillText('9 level, har level mein ek naya dhoka.', W/2, 296);
     ctx.fillText('Kaante, aara, girti chhat, nakli darwaze... aur ulta gravity!', W/2, 328);
     ctx.fillStyle = '#8f7bff'; ctx.font = '700 22px Arial';
     if (Math.floor(timeNow*1.6) % 2 === 0) ctx.fillText('— Press SPACE ya tap karo shuru karne ke liye —', W/2, 366);
@@ -1122,6 +1257,8 @@ function draw(){
       var sp = L.spikes[i];
       drawSpikes(sp.x, sp.baseY, sp.w, sp.cur * sp.maxH, false);
     }
+    /* fire jets */
+    for (i = 0; i < L.flames.length; i++) drawFlame(L.flames[i]);
     /* hanging ceiling-spike panels */
     for (i = 0; i < L.ceilSpikes.length; i++){
       var csp = L.ceilSpikes[i];
@@ -1148,6 +1285,9 @@ function draw(){
       ctx.strokeStyle = 'rgba(187,107,217,' + (0.55 * (1 - pf.t / 0.35)) + ')'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(pf.x, pf.y, 8 + pf.t * 52, 0, 7); ctx.stroke();
     }
+    /* cannons + bullets */
+    for (i = 0; i < L.cannons.length; i++) drawCannon(L.cannons[i]);
+    for (i = 0; i < L.bullets.length; i++) drawBullet(L.bullets[i]);
     /* player */
     if (state !== 'dead') drawPlayer();
     else { /* ghost poof on death */
