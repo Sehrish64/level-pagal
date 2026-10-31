@@ -588,17 +588,25 @@ function buildLevel(n){
   else if (n === 6){
     L.name = 'Bhaagti Chabi';
     L.hint = 'Chabi bhi bhaagti hai, darwaza bhi gayab hota hai. Button se bach ke!';
-    L.platforms = [ P(0,500,430,40), P(520,500,440,40),
-      P(520,410,70,14), P(560,330,220,18) ];
-    var bs1 = SPK(318,500,50,'button'), bs2 = SPK(374,500,50,'button');
-    L.spikes = [ bs1, bs2, SPK(600,500,44,'popup') ];
-    L.buttons = [ { x:246, y:490, w:34, h:10, fired:false, link:[bs1, bs2] } ];
-    L.springs = [ { x:660, y:488, w:38, h:12, power:1150, squash:0 } ];
-    L.key = { x:600, y:294, taken:false, bob:0, spots:[600,668,736], idx:0, cool:0 };
+    /* KHULA STAGE rebuild (L3 wali rooh): farsh pura ek, koi khadda nahi —
+       khatra traps se aata hai, na-insafi se nahi. Button wale kaante ab
+       aage nikalte hain aur peeche poora khula farsh milta hai; teleport
+       darwaza sirf 2 dafa bhaagta hai aur dono dafa wahan jata hai jahan
+       player pehle hi ja chuka hai (stage / wapas apni jagah). */
+    L.platforms = [ P(0,500,960,40),
+      P(540,318,280,18),                    /* chabi wala stage — chaura aur khula */
+      P(836,412,108,14) ];                  /* stage tak ki seedhi (right side) */
+    var bs1 = SPK(268,500,44,'button'), bs2 = SPK(318,500,44,'button');
+    L.spikes = [ bs1, bs2, SPK(462,500,44,'popup'), SPK(756,500,44,'popup') ];
+    L.buttons = [ { x:180, y:490, w:34, h:10, fired:false, link:[bs1, bs2] } ];
+    L.saws = [ SAW(650,474,21,'x',606,724,105) ];
+    L.ceiling = { x:846, y:96, w:96, h:22, spikeH:16, homeY:96, dropY:378,
+                  triggerX:806, state:'idle', timer:0, vy:0 };
+    L.key = { x:580, y:282, taken:false, bob:0, spots:[580,652,724], idx:0, cool:0 };
     var td7 = DOOR(886,416,'real'); td7.locked = true;
     L.doors = [ td7 ];
     L.teleDoor = { door:td7, idx:0, cool:0, done:false,
-      spots:[ {x:886,y:416}, {x:580,y:246}, {x:120,y:416}, {x:886,y:416} ] };
+      spots:[ {x:886,y:416}, {x:600,y:234}, {x:886,y:416} ] };
   }
   else if (n === 7){
     L.name = 'Darwaza Mela';
@@ -652,9 +660,72 @@ function buildLevel(n){
     L.pads = [ { x:790, y:178, w:42, h:12, power:1050, squash:0 } ]; /* deewar ke paar, darwaze tak */
     L.doors = [ DOOR(648,106) ];
   }
+  else if (n === 10){
+    L.name = 'Farsh Ka Jhooth';
+    L.hint = 'Brown farsh giray ga — magar neeche bhi farsh hai! Chhat aur aari ka waqt dekh ke chalna.';
+    L.platforms = [ P(0,500,280,40),
+      P(280,500,120,40,'trap'), P(400,500,120,40,'trap'),   /* nakli farsh: girta hai, magar... */
+      P(280,526,240,14),                                     /* ...neeche asli farsh hai — dhoka fail! */
+      P(520,500,440,40) ];
+    L.spikes = [ SPK(600,500,44,'popup') ];
+    L.ceiling = { x:706, y:96, w:100, h:22, spikeH:16, homeY:96, dropY:462,
+                  triggerX:536, state:'idle', timer:0, vy:0 };
+    L.saws = [ SAW(840,478,18,'x',818,862,120) ];
+    L.doors = [ DOOR(908,416) ];
+  }
+  else if (n === 11){
+    L.name = 'Shareef Aari';
+    L.hint = 'Peeche wali aari tez hai! Darwaze wali ruk gayi hai — shareef hai. Block ke kaante upar hain!';
+    L.platforms = [ P(0,500,960,40),
+      P(150,392,120,16), P(330,392,120,16) ];
+    L.saws = [ SAW(120,474,22,'x',90,560,150),          /* peeche wali — tez tareen, peecha karti hai */
+               SAW(838,476,20,'x',833,843,170) ];       /* darwaze wali — ruk gayi, shareef aari */
+    L.spikes = [ SPK(620,500,44,'popup') ];
+    L.blocks = [ { x:700, y:452, w:48, h:48, from:668, to:756, speed:64, dir:1 } ];
+    L.doors = [ DOOR(892,416) ];
+  }
+  else if (n === 12){
+    L.name = 'Chabi Bhi, Darwaza Bhi';
+    L.hint = 'Pehle upar se chabi lao. Bhaagta darwaza khud thak jayega. Beech wale farsh par zyada der mat rukna!';
+    L.platforms = [ P(0,500,400,40), P(400,500,110,40,'trap'), P(510,500,450,40),
+      P(40,424,100,14), P(156,368,100,14), P(272,318,200,18) ];
+    L.spikes = [ SPK(668,500,44,'popup') ];
+    L.saws = [ SAW(578,474,20,'x',540,624,95) ];
+    L.key = { x:300, y:282, taken:false, bob:0, spots:[300,356,412], idx:0, cool:0 };
+    var rd13 = DOOR(892,416,'real'); rd13.locked = true;
+    L.doors = [ rd13 ];
+    L.doorRun = { door:rd13, spots:[800,716], idx:0, cool:0, done:false };
+  }
+  else if (n === 13){
+    L.name = 'Ulti Seedhi';
+    L.hint = 'Seedhi peeche gayab hoti hai! Upar gravity ulta — asli darwaza chhat par latka hai, sitara dhundo!';
+    L.platforms = [ P(0,500,960,40),
+      P(430,446,76,14,'step'), P(522,392,76,14,'step'), P(614,338,76,14,'step'),
+      P(700,300,130,16),
+      P(660,0,300,34) ];                     /* chhat wala slab — ulta farsh */
+    L.flames = [ FLAME(200,500,46,0), FLAME(330,500,46,1.2) ];
+    L.spikes = [ SPK(520,500,44,'popup') ];
+    var fd14 = DOOR(896,34,'real'); fd14.star = true;
+    L.doors = [ fd14 ];
+    L.gates = [ { x1:742, x2:768, to:-1, label:'GRAVITY ULTA!' } ];
+  }
+  else if (n === 14){
+    L.name = 'Aakhri Shortcut';
+    L.hint = 'Darwaza paas hai, chabi door hai. Jaamni darwaza wapas start phenkta hai — kabhi kabhi yehi shortcut hota hai!';
+    L.platforms = [ P(0,500,960,40),
+      P(852,424,96,14), P(700,330,242,18) ];
+    L.spikes = [ SPK(300,500,44,'popup') ];
+    L.ceiling = { x:420, y:96, w:100, h:22, spikeH:16, homeY:96, dropY:462,
+                  triggerX:250, state:'idle', timer:0, vy:0 };
+    L.flames = [ FLAME(560,500,46,0.6) ];
+    L.saws = [ SAW(700,474,21,'x',664,756,120) ];
+    L.key = { x:830, y:294, taken:false, bob:0, spots:[830,886], idx:0, cool:0 };
+    var ld15 = DOOR(120,416,'real'); ld15.locked = true;
+    L.doors = [ ld15, DOOR(700,246,'teleport') ];
+  }
   return L;
 }
-var LEVEL_COUNT = 10;
+var LEVEL_COUNT = 15;
 
 /* ---------------- Game state ---------------- */
 var state = 'title';           /* title | intro | play | dead | clear | win */
@@ -1509,7 +1580,7 @@ function draw(){
     ctx.fillStyle = '#ff9f43'; ctx.font = '900 28px Arial';
     ctx.fillText('Darwaza Bhaag Gaya!', W/2, 248);
     ctx.fillStyle = '#e8e8ff'; ctx.font = '20px Arial';
-    ctx.fillText('10 level, har level mein ek naya dhoka.', W/2, 296);
+    ctx.fillText(LEVEL_COUNT + ' level, har level mein ek naya dhoka.', W/2, 296);
     ctx.fillText('Kaante, aara, girti chhat, nakli darwaze... aur ulta gravity!', W/2, 328);
     ctx.fillStyle = '#8f7bff'; ctx.font = '700 22px Arial';
     if (Math.floor(timeNow*1.6) % 2 === 0) ctx.fillText('— Press SPACE ya tap karo shuru karne ke liye —', W/2, 366);
